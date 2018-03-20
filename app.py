@@ -19,6 +19,8 @@ class WebApp:
         self.app.router.add_get('/info', self.info)
         self.app.router.add_get('/oom', self.oom)
         self.app.router.add_get('/crash', self.crash_like_a_quiche)
+        self.app.router.add_get('/timeout', self.long_execution)
+        self.app.router.add_get('/code/{code:\d+}', self.reply_code)
 
         self.health_toggle = health_toggle
         self.oom = oom
@@ -66,6 +68,16 @@ class WebApp:
 
     async def crash_like_a_quiche(self, request):
         os._exit(255)
+
+    async def long_execution(self, request):
+        timeout = 120 # seconds
+        print("waiting {} seconds to answer request".format(timeout))
+        await asyncio.sleep(timeout)
+        return web.json_response({'waited': timeout})
+
+    async def reply_code(self, request):
+        code = int(request.match_info['code'])
+        return web.json_response({'code': code}, status=code)
 
 
 @click.group()
