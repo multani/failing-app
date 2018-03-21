@@ -3,6 +3,7 @@
 import asyncio
 import click
 import os
+import random
 import sys
 import time
 from aiohttp import web
@@ -10,6 +11,7 @@ from aiohttp import web
 
 DEFAULT_PORT = os.environ.get('NOMAD_PORT_http', 8080)
 
+CODES_DISTRIBUTION = ([200] * 1000) + ([404] * 1) + ([500] * 1) + ([503] * 1)
 
 class WebApp:
     def __init__(self, health_toggle=False, oom=False):
@@ -21,6 +23,7 @@ class WebApp:
         self.app.router.add_get('/crash', self.crash_like_a_quiche)
         self.app.router.add_get('/timeout', self.long_execution)
         self.app.router.add_get('/code/{code:\d+}', self.reply_code)
+        self.app.router.add_get('/code/random', self.reply_random_code)
 
         self.health_toggle = health_toggle
         self.oom = oom
@@ -77,6 +80,10 @@ class WebApp:
 
     async def reply_code(self, request):
         code = int(request.match_info['code'])
+        return web.json_response({'code': code}, status=code)
+
+    async def reply_random_code(self, request):
+        code = random.choice(CODES_DISTRIBUTION)
         return web.json_response({'code': code}, status=code)
 
 
