@@ -36,7 +36,28 @@ class WebApp:
     def run(self, port=8080):
         web.run_app(self.app, port=port)
 
+    def show_help(self):
+        for route in self.app.router.routes():
+            method = route.method
+            if method == "HEAD":
+                continue
+
+            info = route.get_info()
+            if 'path' in info:
+                path = info['path']
+            else:
+                path = info['formatter']
+
+            doc = route.handler.__doc__
+            if not doc:
+                doc = "{}()".format(route.handler.__func__.__name__)
+            doc = doc.split('\n')[0]
+
+            print("{} on {:<20}: {:<25}".format(method, path, doc))
+
     async def health(self, request):
+        """Health of the application"""
+
         if self.health_toggle:
             self.status['health'] = not self.status['health']
 
@@ -51,14 +72,20 @@ class WebApp:
         return web.json_response(data, status=200 if ok else 500)
 
     async def info(self, request):
+        """Basic information"""
+
         data = {'version': '1.0.0'}
         return web.json_response(data)
 
     async def hello(self, request):
+        """Just some basic JSON"""
+
         data = {'text': 'Hello, world!'}
         return web.json_response(data)
 
     async def oom(self, request):
+        """Consume more and more of memory"""
+
         response = web.StreamResponse()
         await response.prepare(request)
 
@@ -70,19 +97,27 @@ class WebApp:
         return response
 
     async def crash_like_a_quiche(self, request):
+        """Exit as rudely as possible the application"""
+
         os._exit(255)
 
     async def long_execution(self, request):
+        """Return a response after a very long time"""
+
         timeout = 120 # seconds
         print("waiting {} seconds to answer request".format(timeout))
         await asyncio.sleep(timeout)
         return web.json_response({'waited': timeout})
 
     async def reply_code(self, request):
+        """Return the request HTTP status code"""
+
         code = int(request.match_info['code'])
         return web.json_response({'code': code}, status=code)
 
     async def reply_random_code(self, request):
+        """Generate a random HTTP status code"""
+
         code = random.choice(CODES_DISTRIBUTION)
         return web.json_response({'code': code}, status=code)
 
@@ -124,6 +159,7 @@ def mem_leak(port):
 @click.option("-p", "--port", type=int, default=DEFAULT_PORT)
 def web_app(port):
     app = WebApp()
+    app.show_help()
     app.run(port)
 
 
