@@ -18,6 +18,7 @@ class WebApp:
         self.app = web.Application()
         self.app.router.add_get('/', self.hello)
         self.app.router.add_get('/health', self.health)
+        self.app.router.add_get('/echo', self.echo)
         self.app.router.add_get('/info', self.info)
         self.app.router.add_get('/oom', self.oom)
         self.app.router.add_get('/crash', self.crash_like_a_quiche)
@@ -76,6 +77,16 @@ class WebApp:
 
         data = {'version': '1.0.0'}
         return web.json_response(data)
+
+    async def echo(self, request):
+        data = ["{} {} {}".format(request.method, request.url, request.version)]
+        data = data + [
+            "{}: {}".format(key, value)
+            for (key, value) in sorted(request.headers.items())
+        ]
+
+        response = web.Response(text="\n".join(data))
+        return response
 
     async def hello(self, request):
         """Just some basic JSON"""
