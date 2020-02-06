@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 
+import json
 import asyncio
 import click
 import os
@@ -25,6 +26,7 @@ class WebApp:
         self.app.router.add_get('/timeout', self.long_execution)
         self.app.router.add_get('/code/{code:\d+}', self.reply_code)
         self.app.router.add_get('/code/random', self.reply_random_code)
+        self.app.router.add_get('/ttfb', self.time_to_first_byte)
 
         self.health_toggle = health_toggle
         self.oom = oom
@@ -131,6 +133,28 @@ class WebApp:
 
         code = random.choice(CODES_DISTRIBUTION)
         return web.json_response({'code': code}, status=code)
+
+    async def time_to_first_byte(self, request):
+        """Artificially wait before the first and before the last byte"""
+
+        ttfb = int(request.query.get("ttfb", 10)) # seconds
+        wait = int(request.query.get("wait", 10)) # seconds
+        msg = {"ttfb": ttfb, "wait": wait}
+
+        response = web.StreamResponse()
+        response.content_type = "application/json"
+
+        await asyncio.sleep(ttfb)
+        # Send the initial HTTP headers
+        await response.prepare(request)
+
+        # Wait before sending the last bytes
+        await asyncio.sleep(wait)
+        await response.write(json.dumps(msg).encode("utf-8"))
+        await response.write(b"\n")
+
+        # We finished!
+        return response
 
 
 @click.group()
